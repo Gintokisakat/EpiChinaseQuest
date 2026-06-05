@@ -1,65 +1,123 @@
-import Image from "next/image";
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import type { User } from '@supabase/supabase-js'
 
 export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user)
+      setLoading(false)
+    })
+  }, [supabase])
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#0f0f1a]">
+        <div className="text-6xl animate-pulse">🏯</div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f1a] p-4">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-6">🏯</div>
+          <h1 className="text-3xl font-bold text-[#f0e6d0] mb-2">
+            EpilChinaseQuest
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-[#a78bfa] mb-8">
+            Bienvenido, {user.email}
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <div className="grid grid-cols-2 gap-4">
+            <a
+              href="/map"
+              className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-6 hover:border-[#f59e0b] transition-colors text-center"
+            >
+              <div className="text-3xl mb-2">🗺️</div>
+              <div className="text-sm font-medium text-[#f0e6d0]">Mapa</div>
+            </a>
+            <a
+              href="/review"
+              className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-6 hover:border-[#f59e0b] transition-colors text-center"
+            >
+              <div className="text-3xl mb-2">📚</div>
+              <div className="text-sm font-medium text-[#f0e6d0]">Repaso</div>
+            </a>
+            <a
+              href="/collection"
+              className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-6 hover:border-[#f59e0b] transition-colors text-center"
+            >
+              <div className="text-3xl mb-2">🃏</div>
+              <div className="text-sm font-medium text-[#f0e6d0]">Colección</div>
+            </a>
+            <a
+              href="/leaderboard"
+              className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-6 hover:border-[#f59e0b] transition-colors text-center"
+            >
+              <div className="text-3xl mb-2">🏆</div>
+              <div className="text-sm font-medium text-[#f0e6d0]">Ranking</div>
+            </a>
+          </div>
+          <button
+            onClick={() => supabase.auth.signOut()}
+            className="mt-8 text-sm text-[#6b7280] hover:text-[#ef4444] transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f1a] p-4">
+      <div className="text-center max-w-lg">
+        <div className="text-7xl mb-6">🏯</div>
+        <h1 className="text-4xl font-bold text-[#f59e0b] mb-2">
+          EpilChinaseQuest
+        </h1>
+        <p className="text-xl text-[#a78bfa] mb-2">
+          Aprende chino mientras salvas el mundo
+        </p>
+        <p className="text-sm text-[#6b7280] mb-10">
+          Domina 11,000 palabras HSK 3.0 · Derrota jefes épicos · Colecciona cartas · Sube de nivel
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <a
+            href="/login"
+            className="bg-[#f59e0b] text-black font-bold px-8 py-3 rounded-xl hover:bg-[#d97706] transition-colors"
+          >
+            Comenzar Aventura
           </a>
           <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/login?signup=true"
+            className="bg-[#1a1a2e] border border-[#2d2d44] text-[#f0e6d0] font-bold px-8 py-3 rounded-xl hover:border-[#f59e0b] transition-colors"
           >
-            Documentation
+            Crear Cuenta
           </a>
         </div>
-      </main>
+        <div className="mt-16 grid grid-cols-3 gap-6 text-center">
+          <div>
+            <div className="text-3xl mb-2">⚔️</div>
+            <div className="text-xs text-[#6b7280]">10 Bosses</div>
+          </div>
+          <div>
+            <div className="text-3xl mb-2">🃏</div>
+            <div className="text-xs text-[#6b7280]">11,000 Cartas</div>
+          </div>
+          <div>
+            <div className="text-3xl mb-2">🐉</div>
+            <div className="text-xs text-[#6b7280]">16 Personajes</div>
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
