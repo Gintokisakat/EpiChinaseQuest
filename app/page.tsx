@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { xpProgress, xpColor } from '@/lib/game/xp'
+import BottomNav from '@/components/ui/bottom-nav'
 import type { User } from '@supabase/supabase-js'
 import type { Profile, Card, UserCard } from '@/types'
 
@@ -86,21 +87,27 @@ export default function Home() {
 
     return (
       <div className="min-h-screen bg-[#0f0f1a]">
-        <div className="bg-[#1a1a2e] border-b border-[#2d2d44] px-4 py-3 flex items-center justify-between">
-          <span className="text-lg font-bold text-[#f59e0b]">🏯 EpilChinaseQuest</span>
+        {/* Top bar */}
+        <nav className="bg-[#1a1a2e] border-b border-[#2d2d44] px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
+          <span className="text-base font-bold text-[#f59e0b]">🏯 EpilChinaseQuest</span>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-[#fbbf24]">🔥 {profile.daily_streak}</span>
-            <span className="text-[#a78bfa]">Nv.{xp.level}</span>
+            {profile?.daily_streak ? (
+              <span className="text-[#fbbf24]">🔥 {profile.daily_streak}</span>
+            ) : null}
+            {xp && (
+              <span className="text-[#a78bfa]">Nv.{xp.level}</span>
+            )}
             <button
               onClick={() => supabase.auth.signOut()}
-              className="text-[#6b7280] hover:text-[#ef4444] transition-colors"
+              className="text-[#6b7280] hover:text-[#ef4444] transition-colors text-xs"
             >
               Salir
             </button>
           </div>
-        </div>
+        </nav>
 
-        <div className="max-w-lg mx-auto p-4 space-y-4">
+        <div className="max-w-lg mx-auto p-4 space-y-4 pb-20">
+          {/* XP Bar */}
           <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4">
             <div className="flex justify-between text-sm mb-1">
               <span className="text-[#a78bfa]">Nivel {xp.level}</span>
@@ -201,19 +208,14 @@ export default function Home() {
               <div className="font-bold text-white text-sm">Colección</div>
               <div className="text-xs text-white/80">{knownCount} cartas</div>
             </a>
+            <a href="/leaderboard" className="bg-gradient-to-br from-[#2563eb] to-[#1d4ed8] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">🏆</div>
+              <div className="font-bold text-white text-sm">Ranking</div>
+            </a>
           </div>
-
-          <a href="/leaderboard" className="block bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] rounded-xl p-4 hover:brightness-110 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">🏆</div>
-              <div>
-                <div className="font-bold text-white text-sm">Ranking</div>
-                <div className="text-xs text-white/80">Compara tu progreso</div>
-              </div>
-              <div className="ml-auto text-xl">→</div>
-            </div>
-          </a>
         </div>
+
+        <BottomNav />
       </div>
     )
   }
