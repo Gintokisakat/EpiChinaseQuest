@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { xpProgress, xpColor } from '@/lib/game/xp'
 import type { User } from '@supabase/supabase-js'
-import type { Profile } from '@/types'
+import type { Profile, Card, UserCard } from '@/types'
+
+const DAILY_GOAL = 10
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null)
@@ -12,6 +14,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [knownCount, setKnownCount] = useState(0)
   const [reviseCount, setReviseCount] = useState(0)
+  const [lastCard, setLastCard] = useState<(Card & { userCard: UserCard }) | null>(null)
+  const [todayCount, setTodayCount] = useState(0)
   const supabase = createClient()
 
   useEffect(() => {
@@ -43,6 +47,27 @@ export default function Home() {
         .eq('user_id', user.id)
         .or('revise1.eq.true,revise2.eq.true')
       setReviseCount(revise || 0)
+
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const { count: todayCards } = await supabase
+        .from('user_cards')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('updated_at', today.toISOString())
+      setTodayCount(todayCards || 0)
+
+      const { data: last } = await supabase
+        .from('user_cards')
+        .select('id, card_id, known, revise1, revise2, card_level, challenge_streak, challenge_best, updated_at, cards(*)')
+        .eq('user_id', user.id)
+        .not('updated_at', 'is', null)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+      if (last && last.length > 0) {
+        const uc = last[0] as unknown as UserCard & { cards: Card }
+        setLastCard({ ...uc.cards, userCard: { ...uc, card_id: uc.card_id, user_id: user.id } })
+      }
     }
     setLoading(false)
   }
@@ -57,10 +82,10 @@ export default function Home() {
 
   if (user && profile) {
     const xp = xpProgress(profile.xp)
+    const dailyProgress = Math.min(todayCount / DAILY_GOAL, 1)
 
     return (
       <div className="min-h-screen bg-[#0f0f1a]">
-        {/* Header */}
         <div className="bg-[#1a1a2e] border-b border-[#2d2d44] px-4 py-3 flex items-center justify-between">
           <span className="text-lg font-bold text-[#f59e0b]">🏯 EpilChinaseQuest</span>
           <div className="flex items-center gap-3 text-sm">
@@ -75,9 +100,8 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto p-4">
-          {/* XP Bar */}
-          <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4 mb-6">
+        <div className="max-w-lg mx-auto p-4 space-y-4">
+          <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4">
             <div className="flex justify-between text-sm mb-1">
               <span className="text-[#a78bfa]">Nivel {xp.level}</span>
               <span className="text-[#6b7280]">{xp.currentXp} / {xp.nextLevelXp} XP</span>
@@ -94,99 +118,102 @@ export default function Home() {
             </div>
           </div>
 
-          {/* FLOW DE APRENDIZAJE */}
-          <div className="space-y-3">
-            {/* Paso 1: Aprender */}
-            <a
-              href="/learn"
-              className="block bg-gradient-to-r from-[#7c3aed] to-[#6d28d9] rounded-xl p-5 hover:brightness-110 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">📖</div>
-                <div>
-                  <div className="font-bold text-white text-lg">1. Aprender</div>
-                  <div className="text-sm text-white/80">
-                    Estudia unidades nuevas de vocabulario
-                  </div>
-                </div>
-                <div className="ml-auto text-2xl">→</div>
-              </div>
-            </a>
+          {/* Daily Mission */}
+          <div className="bg-gradient-to-r from-[#f59e0b]/20 to-[#d97706]/20 border border-[#f59e0b]/30 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-bold text-[#f59e0b] text-sm">🎯 Misión Diaria</span>
+              <span className="text-xs text-[#f59e0b]">{todayCount}/{DAILY_GOAL}</span>
+            </div>
+            <div className="text-xs text-[#f0e6d0]/80 mb-2">Estudia {DAILY_GOAL} cartas hoy</div>
+            <div className="w-full h-2 bg-[#2d2d44] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[#f59e0b] transition-all"
+                style={{ width: `${dailyProgress * 100}%` }}
+              />
+            </div>
+          </div>
 
-            {/* Paso 2: Repasar */}
-            <a
-              href="/review"
-              className="block bg-gradient-to-r from-[#059669] to-[#047857] rounded-xl p-5 hover:brightness-110 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">📚</div>
-                <div>
-                  <div className="font-bold text-white text-lg">2. Repasar</div>
-                  <div className="text-sm text-white/80">
-                    Refuerza cartas {reviseCount > 0 ? `(${reviseCount} pendientes)` : ''}
-                  </div>
+          {/* Continue donde dejaste */}
+          <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4">
+            <div className="text-sm font-bold text-[#f0e6d0] mb-2">▶️ Continuar</div>
+            {lastCard && !lastCard.userCard.known ? (
+              <a
+                href="/review"
+                className="flex items-center gap-3 bg-[#2d2d44] rounded-lg p-3 hover:bg-[#3d3d54] transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-[#f0e6d0] truncate">{lastCard.hanzi} — {lastCard.pinyin}</div>
+                  <div className="text-xs text-[#6b7280]">{lastCard.english}</div>
                 </div>
-                <div className="ml-auto text-2xl">→</div>
-              </div>
-            </a>
+                <span className="text-xs text-[#f59e0b]">Repasar →</span>
+              </a>
+            ) : reviseCount > 0 ? (
+              <a href="/review" className="flex items-center gap-3 bg-[#059669]/20 rounded-lg p-3 hover:brightness-110 transition-colors">
+                <div className="text-2xl">📚</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#f0e6d0]">{reviseCount} cartas por repasar</div>
+                  <div className="text-xs text-[#6b7280]">Continúa tu repaso</div>
+                </div>
+                <span className="text-xs text-[#059669]">Ir →</span>
+              </a>
+            ) : knownCount > 0 ? (
+              <a href="/learn" className="flex items-center gap-3 bg-[#7c3aed]/20 rounded-lg p-3 hover:brightness-110 transition-colors">
+                <div className="text-2xl">📖</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#f0e6d0]">Aprende nuevas cartas</div>
+                  <div className="text-xs text-[#6b7280]">Amplía tu vocabulario</div>
+                </div>
+                <span className="text-xs text-[#7c3aed]">Ir →</span>
+              </a>
+            ) : (
+              <a href="/learn" className="flex items-center gap-3 bg-[#7c3aed]/20 rounded-lg p-3 hover:brightness-110 transition-colors">
+                <div className="text-2xl">📖</div>
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-[#f0e6d0]">Empieza tu viaje</div>
+                  <div className="text-xs text-[#6b7280]">Primera lección</div>
+                </div>
+                <span className="text-xs text-[#7c3aed]">Ir →</span>
+              </a>
+            )}
+          </div>
 
-            {/* Paso 3: Cruzada (Bosses) */}
-            <a
-              href="/map"
-              className="block bg-gradient-to-r from-[#dc2626] to-[#b91c1c] rounded-xl p-5 hover:brightness-110 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">⚔️</div>
-                <div>
-                  <div className="font-bold text-white text-lg">3. Cruzada</div>
-                  <div className="text-sm text-white/80">
-                    Derrota jefes con tu conocimiento
-                  </div>
-                </div>
-                <div className="ml-auto text-2xl">→</div>
-              </div>
+          {/* Quick Actions */}
+          <div className="grid grid-cols-2 gap-3">
+            <a href="/learn" className="bg-gradient-to-br from-[#7c3aed] to-[#6d28d9] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">📖</div>
+              <div className="font-bold text-white text-sm">Aprender</div>
             </a>
-
-            {/* Colección */}
-            <a
-              href="/collection"
-              className="block bg-gradient-to-r from-[#d97706] to-[#b45309] rounded-xl p-5 hover:brightness-110 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">🃏</div>
-                <div>
-                  <div className="font-bold text-white text-lg">Colección</div>
-                  <div className="text-sm text-white/80">
-                    {knownCount} cartas coleccionadas
-                  </div>
-                </div>
-                <div className="ml-auto text-2xl">→</div>
-              </div>
+            <a href="/review" className="bg-gradient-to-br from-[#059669] to-[#047857] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">📚</div>
+              <div className="font-bold text-white text-sm">Repasar</div>
+              {reviseCount > 0 && <div className="text-xs text-white/80">{reviseCount} pendientes</div>}
             </a>
-
-            {/* Leaderboard */}
-            <a
-              href="/leaderboard"
-              className="block bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] rounded-xl p-5 hover:brightness-110 transition-all"
-            >
-              <div className="flex items-center gap-4">
-                <div className="text-3xl">🏆</div>
-                <div>
-                  <div className="font-bold text-white text-lg">Ranking</div>
-                  <div className="text-sm text-white/80">
-                    Compara tu progreso con otros jugadores
-                  </div>
-                </div>
-                <div className="ml-auto text-2xl">→</div>
-              </div>
+            <a href="/map" className="bg-gradient-to-br from-[#dc2626] to-[#b91c1c] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">⚔️</div>
+              <div className="font-bold text-white text-sm">Cruzada</div>
+            </a>
+            <a href="/collection" className="bg-gradient-to-br from-[#d97706] to-[#b45309] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">🃏</div>
+              <div className="font-bold text-white text-sm">Colección</div>
+              <div className="text-xs text-white/80">{knownCount} cartas</div>
             </a>
           </div>
+
+          <a href="/leaderboard" className="block bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] rounded-xl p-4 hover:brightness-110 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">🏆</div>
+              <div>
+                <div className="font-bold text-white text-sm">Ranking</div>
+                <div className="text-xs text-white/80">Compara tu progreso</div>
+              </div>
+              <div className="ml-auto text-xl">→</div>
+            </div>
+          </a>
         </div>
       </div>
     )
   }
 
-  // Landing page for non-logged-in users
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f1a] p-4">
       <div className="text-center max-w-lg">
@@ -201,7 +228,6 @@ export default function Home() {
           11,000 palabras HSK 3.0 · Derrota jefes · Colecciona cartas · Sube de nivel
         </p>
 
-        {/* Flow explanation */}
         <div className="grid grid-cols-3 gap-4 mb-10 text-center">
           <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4">
             <div className="text-3xl mb-2">📖</div>

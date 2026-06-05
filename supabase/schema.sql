@@ -49,6 +49,7 @@ create table if not exists user_cards (
   revenge_marked boolean not null default false,
   dk_added_at timestamptz,
   modified boolean not null default false,
+  updated_at timestamptz not null default now(),
   unique(user_id, card_id)
 );
 

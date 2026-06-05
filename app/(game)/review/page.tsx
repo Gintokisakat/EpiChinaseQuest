@@ -163,6 +163,7 @@ export default function ReviewPage() {
         card_level: newLevel,
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
+        updated_at: new Date().toISOString(),
       })
       if (upsertError) toast('Error al guardar tu respuesta', 'error')
 

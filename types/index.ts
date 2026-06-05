@@ -32,6 +32,7 @@ export interface UserCard {
   revenge_marked: boolean
   dk_added_at: string | null
   modified?: boolean
+  updated_at?: string
 }
 
 export interface Character {

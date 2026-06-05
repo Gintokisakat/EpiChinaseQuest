@@ -33,16 +33,16 @@
 
 ---
 
-## Phase 1 — Audio + UX stability 🔜
+## Phase 1 — Audio + UX stability ✅
 
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
-| Audio playback in flashcards | 🔥 High | 📝 | Button 🔊 en cada carta. Storage si existe audio_path, TTS fallback |
-| Error Boundary global + per-page | 🔥 High | 📝 | Que un crash no rompa todo |
-| Empty states | 🔥 High | 📝 | Mensajes amigables: colección vacía, sin resultados, etc. |
-| Error handling (toast) | 🔥 High | 📝 | Cuando falla Supabase, mostrar toast en vez de silencio |
-| Bottom nav (Home / Aprender / Cruzada / Perfil) | 🔥 High | 💡 | Reemplazar sidebar por bottom tabs como Duolingo |
-| Dashboard redesign | Medium | 💡 | "Continue donde dejaste", streak, daily mission |
+| Audio playback in flashcards | 🔥 High | ✅ | Button 🔊 en learn + review. Storage si existe audio_path, TTS fallback |
+| Error Boundary global | 🔥 High | ✅ | Wrapped en root layout. Catch any uncaught error |
+| Empty states | 🔥 High | ✅ | Colección (cartas + personajes), ranking, mapa |
+| Error handling (toast) | 🔥 High | ✅ | Toast system + usado en review para errores de Supabase |
+| Bottom nav (Home / Aprender / Cruzada / Perfil) | Medium | 💡 | Pendiente |
+| Dashboard redesign | Medium | ✅ | Continue donde dejaste, daily mission, streak, quick actions grid |
 
 ---
 
