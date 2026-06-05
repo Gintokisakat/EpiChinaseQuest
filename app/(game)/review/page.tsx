@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { processSrsAnswer, type SrsBox } from '@/lib/game/srs'
+import AudioButton from '@/components/ui/audio-button'
+import { useToast } from '@/components/ui/toast'
 import type { Card, UserCard } from '@/types'
 
 type QuizMode = 'pinyin' | 'meaning' | 'hanzi'
@@ -20,6 +22,7 @@ export default function ReviewPage() {
   const [xpGained, setXpGained] = useState(0)
   const [units, setUnits] = useState<{ level: number; unit: number; count: number }[]>([])
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
+  const { toast } = useToast()
   const supabase = createClient()
 
   useEffect(() => {
@@ -150,7 +153,7 @@ export default function ReviewPage() {
       const result = processSrsAnswer(currentBox, correct)
 
       const newLevel = card.userCard.card_level + (correct ? 1 : 0)
-      await supabase.from('user_cards').upsert({
+      const { error: upsertError } = await supabase.from('user_cards').upsert({
         id: card.userCard.id,
         user_id: user.id,
         card_id: card.id,
@@ -161,10 +164,12 @@ export default function ReviewPage() {
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
       })
+      if (upsertError) toast('Error al guardar tu respuesta', 'error')
 
       if (correct) {
-        const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: result.xpGained })
-        if (!error) setXpGained(prev => prev + result.xpGained)
+        const { error: xpError } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: result.xpGained })
+        if (xpError) toast('Error al añadir XP', 'error')
+        else setXpGained(prev => prev + result.xpGained)
       }
     } else if (queueType === 'unit' && correct) {
       const { data: existing } = await supabase
@@ -275,6 +280,9 @@ export default function ReviewPage() {
         <div className="text-center py-20 text-[#6b7280] animate-pulse">Cargando...</div>
       ) : currentCard ? (
         <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 text-center">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <AudioButton audioUrl={currentCard.audio_path} hanzi={currentCard.hanzi} pinyin={currentCard.pinyin} />
+          </div>
           <div className="text-5xl mb-4 font-bold text-[#f0e6d0] tracking-wider">
             {mode === 'hanzi' ? `${currentCard.pinyin} (${currentCard.english.split(';')[0]})` : currentCard.hanzi}
           </div>

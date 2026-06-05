@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   description: "Aprende chino mandarín mientras derrotas jefes, coleccionas cartas y subes de nivel con el sistema HSK 3.0 completo.",
 };
 
+import ErrorBoundary from '@/components/ui/error-boundary'
+import { ToastProvider } from '@/components/ui/toast'
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +30,11 @@ export default function RootLayout({
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ToastProvider>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </ToastProvider>
+      </body>
     </html>
   );
 }

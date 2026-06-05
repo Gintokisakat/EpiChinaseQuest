@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import AudioButton from '@/components/ui/audio-button'
 import type { Card } from '@/types'
 
 type Phase = 'select' | 'study' | 'quiz' | 'done'
@@ -219,12 +220,18 @@ export default function LearnPage() {
         >
           {!flipped ? (
             <>
-              <div className="text-xs text-[#6b7280] mb-4">Toca para ver respuesta</div>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <AudioButton audioUrl={card.audio_path} hanzi={card.hanzi} pinyin={card.pinyin} size="lg" />
+                <div className="text-xs text-[#6b7280]">Toca para ver respuesta</div>
+              </div>
               <div className="text-6xl font-bold text-[#f0e6d0] tracking-wider">{card.hanzi}</div>
               <div className="text-sm text-[#6b7280] mt-4">L{card.level} · {card.pos || '—'}</div>
             </>
           ) : (
             <>
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <AudioButton audioUrl={card.audio_path} hanzi={card.hanzi} pinyin={card.pinyin} size="lg" />
+              </div>
               <div className="text-4xl font-bold text-[#f59e0b] mb-2">{card.pinyin}</div>
               <div className="text-sm text-[#f0e6d0] max-w-md">
                 {card.english.includes(';') ? card.english.split(';').slice(0, 3).join('; ') : card.english}

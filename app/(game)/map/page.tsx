@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import EmptyState from '@/components/ui/empty-state'
 import type { Mission, UserMission } from '@/types'
 
 const LEVEL_INFO = [
@@ -90,6 +91,9 @@ export default function MapPage() {
       </div>
 
       {/* Mission list */}
+      {missions.length === 0 ? (
+        <EmptyState icon="🗺️" title="No hay misiones disponibles" description="Las misiones se cargarán cuando haya contenido disponible." />
+      ) : (
       <div className="space-y-3">
         {missions.map(m => {
           const status = m.userMission?.status || 'locked'
@@ -129,6 +133,7 @@ export default function MapPage() {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

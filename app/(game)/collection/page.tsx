@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import EmptyState from '@/components/ui/empty-state'
 import type { Card, UserCard } from '@/types'
 
 export default function CollectionPage() {
@@ -145,6 +146,9 @@ export default function CollectionPage() {
       )}
 
       {tab === 'characters' && (
+        characters.length === 0 ? (
+          <EmptyState icon="👤" title="Sin personajes" description="Los personajes se obtienen al subir de nivel y completar misiones." />
+        ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {characters.map(char => (
             <div
@@ -172,7 +176,7 @@ export default function CollectionPage() {
             </div>
           ))}
         </div>
-      )}
+      ))}
     </div>
   )
 }

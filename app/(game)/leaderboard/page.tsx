@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import EmptyState from '@/components/ui/empty-state'
 
 interface LeaderboardEntry {
   id: string
@@ -93,6 +94,9 @@ export default function LeaderboardPage() {
       )}
 
       {/* Rankings */}
+      {entries.length === 0 ? (
+        <EmptyState icon="🏆" title="Sin rankings aún" description="Sé el primero en aparecer aquí estudiando y ganando XP." />
+      ) : (
       <div className="space-y-2">
         {entries.map((entry, i) => (
           <div
@@ -121,6 +125,7 @@ export default function LeaderboardPage() {
           </div>
         ))}
       </div>
+      )}
     </div>
   )
 }
