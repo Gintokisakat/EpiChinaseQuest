@@ -149,15 +149,17 @@ export default function ReviewPage() {
         : 'revise2'
       const result = processSrsAnswer(currentBox, correct)
 
+      const newLevel = card.userCard.card_level + (correct ? 1 : 0)
       await supabase.from('user_cards').upsert({
         user_id: user.id,
         card_id: card.id,
         known: result.newBox === 'known',
         revise1: result.newBox === 'revise1' || (result.newBox === 'revise2' && currentBox === 'known'),
         revise2: result.newBox === 'revise2',
+        card_level: newLevel,
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
-      })
+      }, { onConflict: 'user_id,card_id' })
 
       if (correct) {
         const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: result.xpGained })
@@ -176,6 +178,7 @@ export default function ReviewPage() {
           user_id: user.id,
           card_id: card.id,
           known: true,
+          card_level: 1,
           dk_added_at: new Date().toISOString(),
         })
         const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: 10 })

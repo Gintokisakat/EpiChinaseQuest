@@ -137,6 +137,7 @@ export default function LearnPage() {
           user_id: user.id,
           card_id: card.id,
           known: true,
+          card_level: 1,
           dk_added_at: new Date().toISOString(),
         })
       }

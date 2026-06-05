@@ -20,14 +20,27 @@ export default function CollectionPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Fetch user_cards and cards separately to avoid join issues
     const { data: uc } = await supabase
       .from('user_cards')
-      .select('*, card:card_id(*)')
+      .select('*')
       .eq('user_id', user.id)
       .eq('known', true)
       .order('card_level', { ascending: false })
 
-    if (uc) setKnownCards(uc as unknown as (Card & { userCard: UserCard })[])
+    if (uc && uc.length > 0) {
+      const cardIds = uc.map(u => u.card_id)
+      const { data: cards } = await supabase
+        .from('cards')
+        .select('*')
+        .in('id', cardIds)
+
+      const cardMap = new Map((cards || []).map(c => [c.id, c]))
+      setKnownCards(
+        uc.map(u => ({ ...cardMap.get(u.card_id), userCard: u } as Card & { userCard: UserCard }))
+          .filter(c => c.hanzi != null)
+      )
+    }
 
     const { data: chars } = await supabase
       .from('user_characters')
@@ -62,7 +75,7 @@ export default function CollectionPage() {
   }
 
   const filteredCards = knownCards.filter(c =>
-    c.hanzi.includes(search) || c.pinyin.includes(search) || c.english.toLowerCase().includes(search.toLowerCase())
+    c.hanzi?.includes(search) || c.pinyin?.includes(search) || c.english?.toLowerCase().includes(search.toLowerCase())
   )
 
   if (loading) {
