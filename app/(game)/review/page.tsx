@@ -130,7 +130,6 @@ export default function ReviewPage() {
   const handleAnswer = async (answer: string) => {
     if (selected) return
     setSelected(answer)
-    setSelected(null)
 
     const card = cards[currentIndex]
     if (!card) return
@@ -145,8 +144,8 @@ export default function ReviewPage() {
     if (!user) return
 
     if (queueType !== 'unit' && card.userCard) {
-      const currentBox: SrsBox = card.userCard?.known ? 'known'
-        : card.userCard?.revise1 ? 'revise1'
+      const currentBox: SrsBox = card.userCard.known ? 'known'
+        : card.userCard.revise1 ? 'revise1'
         : 'revise2'
       const result = processSrsAnswer(currentBox, correct)
 
@@ -154,7 +153,7 @@ export default function ReviewPage() {
         user_id: user.id,
         card_id: card.id,
         known: result.newBox === 'known',
-        revise1: result.newBox === 'revise1' || result.newBox === 'revise2' && currentBox === 'known',
+        revise1: result.newBox === 'revise1' || (result.newBox === 'revise2' && currentBox === 'known'),
         revise2: result.newBox === 'revise2',
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
@@ -165,7 +164,6 @@ export default function ReviewPage() {
         if (!error) setXpGained(prev => prev + result.xpGained)
       }
     } else if (queueType === 'unit' && correct) {
-      // Add to user_cards as known
       const { data: existing } = await supabase
         .from('user_cards')
         .select('id')
@@ -180,7 +178,8 @@ export default function ReviewPage() {
           known: true,
           dk_added_at: new Date().toISOString(),
         })
-        setXpGained(prev => prev + 10)
+        const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: 10 })
+        if (!error) setXpGained(prev => prev + 10)
       }
     }
 
@@ -195,7 +194,7 @@ export default function ReviewPage() {
         setCards([])
         setCurrentIndex(0)
       }
-    }, 1000)
+    }, 1200)
   }
 
   const currentCard = cards[currentIndex]
@@ -278,6 +277,14 @@ export default function ReviewPage() {
           <div className="text-xs text-[#6b7280] mb-6">
             L{currentCard.level} · {currentCard.pos || '—'}
           </div>
+
+          {/* Feedback */}
+          {selected && (
+            <div className={`text-lg font-bold mb-4 ${isCorrect ? 'text-[#34d399]' : 'text-[#ef4444]'}`}>
+              {isCorrect ? '✓ ¡Correcto!' : '✗ Incorrecto'}
+              {isCorrect && ' +XP'}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             {options.map((opt) => (

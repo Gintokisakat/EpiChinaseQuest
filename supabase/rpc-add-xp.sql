@@ -13,6 +13,11 @@ begin
   from public.profiles p
   where p.id = user_id;
 
+  if not found then
+    raise warning 'Profile not found for user %', user_id;
+    return;
+  end if;
+
   current_xp := current_xp + xp_amount;
 
   -- Check for level up

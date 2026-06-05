@@ -87,11 +87,17 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           )}
         </div>
         <nav className="p-4 space-y-2">
-          <a href="/map" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
-            <span>🗺️</span> Mapa
+          <a href="/" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
+            <span>🏠</span> Inicio
+          </a>
+          <a href="/learn" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#7c3aed] transition-colors">
+            <span>📖</span> Aprender
           </a>
           <a href="/review" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
-            <span>📚</span> Repaso
+            <span>📚</span> Repasar
+          </a>
+          <a href="/map" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
+            <span>⚔️</span> Cruzada
           </a>
           <a href="/collection" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
             <span>🃏</span> Colección
