@@ -192,6 +192,10 @@ export default function Home() {
               <div className="text-2xl mb-1">⚔️</div>
               <div className="font-bold text-white text-sm">Cruzada</div>
             </a>
+            <a href="/shop" className="bg-gradient-to-br from-[#f59e0b] to-[#d97706] rounded-xl p-4 hover:brightness-110 transition-all">
+              <div className="text-2xl mb-1">🏪</div>
+              <div className="font-bold text-white text-sm">Tienda</div>
+            </a>
             <a href="/collection" className="bg-gradient-to-br from-[#d97706] to-[#b45309] rounded-xl p-4 hover:brightness-110 transition-all">
               <div className="text-2xl mb-1">🃏</div>
               <div className="font-bold text-white text-sm">Colección</div>
