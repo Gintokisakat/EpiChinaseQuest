@@ -114,9 +114,16 @@ export default function MissionPage() {
       await supabase.rpc('add_xp', { user_id: user.id, xp_amount: dmg })
 
       if (newHp <= 0) {
-        setTimeout(() => {
+        setTimeout(async () => {
           setStatus('victory')
+          const { data: existingUm } = await supabase
+            .from('user_missions')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('mission_id', mission!.id)
+            .maybeSingle()
           supabase.from('user_missions').upsert({
+            id: existingUm?.id || undefined,
             user_id: user.id,
             mission_id: mission!.id,
             status: 'completed',

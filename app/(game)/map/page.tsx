@@ -16,6 +16,7 @@ const LEVEL_INFO = [
 
 export default function MapPage() {
   const [missions, setMissions] = useState<(Mission & { userMission?: UserMission })[]>([])
+  const [playerLevel, setPlayerLevel] = useState(1)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -27,14 +28,36 @@ export default function MapPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const { data: profile } = await supabase.from('profiles').select('level').eq('id', user.id).single()
+    if (profile) setPlayerLevel(profile.level)
+
     const { data: m } = await supabase.from('missions').select('*').order('order_index')
     const { data: um } = await supabase.from('user_missions').select('*').eq('user_id', user.id)
 
     if (m) {
-      const mapped = m.map(mission => ({
-        ...mission,
-        userMission: um?.find(u => u.mission_id === mission.id) as UserMission | undefined,
-      })) as (Mission & { userMission?: UserMission })[]
+      const completedIds = new Set(
+        (um || []).filter(u => u.status === 'completed').map(u => u.mission_id)
+      )
+
+      const mapped = m.map((mission, i) => {
+        const prevCompleted = i === 0 || completedIds.has(m[i - 1].id)
+        const levelUnlocked = profile ? profile.level >= mission.level_required : false
+        const isUnlocked = prevCompleted && levelUnlocked
+
+        const userMission = um?.find(u => u.mission_id === mission.id) as UserMission | undefined
+
+        return {
+          ...mission,
+          userMission: userMission || {
+            id: '',
+            user_id: user.id,
+            mission_id: mission.id,
+            status: isUnlocked ? 'unlocked' as const : 'locked' as const,
+            high_score: 0,
+            completed_at: null,
+          } as UserMission,
+        }
+      }) as (Mission & { userMission?: UserMission })[]
       setMissions(mapped)
     }
     setLoading(false)
