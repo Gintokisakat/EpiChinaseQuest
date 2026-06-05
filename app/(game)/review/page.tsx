@@ -151,6 +151,7 @@ export default function ReviewPage() {
 
       const newLevel = card.userCard.card_level + (correct ? 1 : 0)
       await supabase.from('user_cards').upsert({
+        id: card.userCard.id,
         user_id: user.id,
         card_id: card.id,
         known: result.newBox === 'known',
@@ -159,7 +160,7 @@ export default function ReviewPage() {
         card_level: newLevel,
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
-      }, { onConflict: 'user_id,card_id' })
+      })
 
       if (correct) {
         const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: result.xpGained })
