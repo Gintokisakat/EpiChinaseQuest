@@ -61,8 +61,8 @@
 
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
-| Skins de Lili (7) | Medium | 📝 | Página `/skins`, preview, desbloqueo por nivel |
-| Avatar en navbar | Medium | 📝 | El skin equipado se muestra arriba |
+| Skins de Lili (7) | Medium | ✅ | 49 expresiones dragón del repo chr-1x/dragn-emoji |
+| Avatar en navbar | Medium | ✅ | LiliAvatar en top bar + dashboard + landing |
 | DB skins + user_skins | ✅ | Seed data lista |
 | Horóscopos UI | Medium | 💡 | 12 categorías, filtro en colección y estudio |
 

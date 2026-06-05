@@ -3,6 +3,7 @@
 import { useAuth } from '@/hooks/useAuth'
 import { xpProgress, xpColor } from '@/lib/game/xp'
 import BottomNav from '@/components/ui/bottom-nav'
+import LiliAvatar from '@/components/ui/lili-avatar'
 
 export default function GameLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading, signOut } = useAuth()
@@ -33,7 +34,10 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen bg-[#0f0f1a] flex flex-col">
       {/* Top bar */}
       <nav className="bg-[#1a1a2e] border-b border-[#2d2d44] px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
-        <a href="/" className="text-base font-bold text-[#f59e0b]">🏯 EpilChinaseQuest</a>
+        <div className="flex items-center gap-2">
+            <LiliAvatar expression="uwu" size={28} />
+            <a href="/" className="text-base font-bold text-[#f59e0b]">EpilChinaseQuest</a>
+          </div>
         <div className="flex items-center gap-3 text-sm">
           {profile?.daily_streak ? (
             <span className="text-[#fbbf24]">🔥 {profile.daily_streak}</span>

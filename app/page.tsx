@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { xpProgress, xpColor } from '@/lib/game/xp'
 import BottomNav from '@/components/ui/bottom-nav'
+import LiliAvatar from '@/components/ui/lili-avatar'
 import type { User } from '@supabase/supabase-js'
 import type { Profile, Card, UserCard } from '@/types'
 
@@ -89,7 +90,10 @@ export default function Home() {
       <div className="min-h-screen bg-[#0f0f1a]">
         {/* Top bar */}
         <nav className="bg-[#1a1a2e] border-b border-[#2d2d44] px-4 py-2.5 flex items-center justify-between sticky top-0 z-50">
-          <span className="text-base font-bold text-[#f59e0b]">🏯 EpilChinaseQuest</span>
+          <div className="flex items-center gap-2">
+            <LiliAvatar expression="uwu" size={32} />
+            <span className="text-base font-bold text-[#f59e0b]">EpilChinaseQuest</span>
+          </div>
           <div className="flex items-center gap-3 text-sm">
             {profile?.daily_streak ? (
               <span className="text-[#fbbf24]">🔥 {profile.daily_streak}</span>
@@ -107,11 +111,20 @@ export default function Home() {
         </nav>
 
         <div className="max-w-lg mx-auto p-4 space-y-4 pb-20">
-          {/* XP Bar */}
+          {/* Lili + XP Bar */}
           <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-xl p-4">
-            <div className="flex justify-between text-sm mb-1">
-              <span className="text-[#a78bfa]">Nivel {xp.level}</span>
-              <span className="text-[#6b7280]">{xp.currentXp} / {xp.nextLevelXp} XP</span>
+            <div className="flex items-center gap-3 mb-3">
+              <LiliAvatar
+                expression={reviseCount > 10 ? 'sweats' : knownCount > 0 ? 'happy' : 'uwu'}
+                size={56}
+              />
+              <div className="flex-1">
+                <div className="text-sm font-bold text-[#f0e6d0]">
+                  {reviseCount > 10 ? '¡Hay mucho por repasar!' : knownCount > 0 ? 'Buen trabajo' : '¡Bienvenido!'}
+                </div>
+                <div className="text-xs text-[#6b7280]">Nivel {xp.level}</div>
+              </div>
+              <div className="text-right text-xs text-[#6b7280]">{xp.currentXp} / {xp.nextLevelXp} XP</div>
             </div>
             <div className="w-full h-2 bg-[#2d2d44] rounded-full overflow-hidden">
               <div
@@ -223,7 +236,9 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-[#0f0f1a] p-4">
       <div className="text-center max-w-lg">
-        <div className="text-7xl mb-6">🏯</div>
+        <div className="mb-6 flex justify-center">
+          <LiliAvatar expression="uwu" size={120} />
+        </div>
         <h1 className="text-4xl font-bold text-[#f59e0b] mb-2">
           EpilChinaseQuest
         </h1>
