@@ -89,6 +89,23 @@ export interface BossState {
   phase: number
 }
 
+export interface Upgrade {
+  id: string
+  name: string
+  description: string
+  effect_type: string
+  effect_value: number
+  cost: number
+  icon: string
+}
+
+export interface UserUpgrade {
+  id: string
+  user_id: string
+  upgrade_id: string
+  level: number
+}
+
 export interface PowerUp {
   id: string
   name: string

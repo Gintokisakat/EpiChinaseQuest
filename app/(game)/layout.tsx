@@ -102,6 +102,9 @@ export default function GameLayout({ children }: { children: React.ReactNode }) 
           <a href="/collection" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
             <span>🃏</span> Colección
           </a>
+          <a href="/shop" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
+            <span>🏪</span> Tienda
+          </a>
           <a href="/leaderboard" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#2d2d44] text-[#f0e6d0] transition-colors">
             <span>🏆</span> Ranking
           </a>

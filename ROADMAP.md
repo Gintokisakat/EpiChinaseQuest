@@ -50,9 +50,9 @@
 
 | Feature | Priority | Status | Description |
 |---------|----------|--------|-------------|
-| Shop page `/shop` | 🔥 High | 📝 | Grid de mejoras globales (daño, tiempo, vidas, XP boost) |
-| Compra con XP | 🔥 High | 📝 | Precio escala por nivel |
-| Aplicación automática | 🔥 High | 📝 | `calculateDamage()` ya acepta upgrades |
+| Shop page `/shop` | 🔥 High | ✅ | Grid de mejoras globales (daño, tiempo, vidas, XP boost) |
+| Compra con XP | 🔥 High | ✅ | Precio escala por nivel, RPC `buy_upgrade` con transacción |
+| Aplicación automática | 🔥 High | ✅ | `calculateDamage()` recibe upgrades cargados en boss fight |
 | DB upgrades + user_upgrades | ✅ | Seed data lista |
 
 ---

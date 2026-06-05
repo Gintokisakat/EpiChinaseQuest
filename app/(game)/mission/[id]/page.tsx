@@ -24,6 +24,7 @@ export default function MissionPage() {
   const [powerUps, setPowerUps] = useState<PowerUp[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [result, setResult] = useState<'correct' | 'wrong' | null>(null)
+  const [upgrades, setUpgrades] = useState<Record<string, number>>({})
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const supabase = createClient()
 
@@ -53,6 +54,27 @@ export default function MissionPage() {
       setBossMaxHp(data.hp)
       setLives(data.lives)
       setTimeLeft(data.timer_secs)
+
+      // Load upgrades
+      const { data: { user: u } } = await supabase.auth.getUser()
+      if (u) {
+        const { data: userUpgrades } = await supabase
+          .from('user_upgrades')
+          .select('upgrade_id, level')
+          .eq('user_id', u.id)
+        const upMap: Record<string, number> = {}
+        if (userUpgrades && userUpgrades.length > 0) {
+          const ids = userUpgrades.map(uu => uu.upgrade_id)
+          const { data: upgradeDefs } = await supabase.from('upgrades').select('id, effect_type, effect_value').in('id', ids)
+          if (upgradeDefs) {
+            for (const uu of userUpgrades) {
+              const def = upgradeDefs.find(d => d.id === uu.upgrade_id)
+              if (def) upMap[def.effect_type] = (upMap[def.effect_type] || 0) + (uu as unknown as { level: number }).level * def.effect_value
+            }
+          }
+        }
+        setUpgrades(upMap)
+      }
 
       // Load card pool
       const pool = data.card_pool as { levels?: number[]; units?: number[] }
@@ -101,7 +123,7 @@ export default function MissionPage() {
     if (correct) {
       const mult = getCardMultiplier()
       const { data: profile } = await supabase.from('profiles').select('level, daily_streak').eq('id', user.id).single()
-      const dmg = calculateDamage(0, profile?.level || 1, profile?.daily_streak || 0, mult)
+      const dmg = calculateDamage(0, profile?.level || 1, profile?.daily_streak || 0, mult, upgrades)
       const newHp = Math.max(0, bossHp - dmg)
       const newCorrect = correctCount + 1
 
