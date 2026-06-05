@@ -41,7 +41,7 @@
 | Error Boundary global | 🔥 High | ✅ | Wrapped en root layout. Catch any uncaught error |
 | Empty states | 🔥 High | ✅ | Colección (cartas + personajes), ranking, mapa |
 | Error handling (toast) | 🔥 High | ✅ | Toast system + usado en review para errores de Supabase |
-| Bottom nav (Home / Aprender / Cruzada / Perfil) | Medium | 💡 | Pendiente |
+| Bottom nav (Inicio / Aprender / Cruzada / Colección / Ranking) | Medium | ✅ | Reemplaza sidebar, mobile-first con safe area |
 | Dashboard redesign | Medium | ✅ | Continue donde dejaste, daily mission, streak, quick actions grid |
 
 ---

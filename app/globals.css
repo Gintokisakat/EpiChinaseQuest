@@ -60,6 +60,10 @@ body {
   border-radius: 4px;
 }
 
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 ::selection {
   background: var(--primary);
   color: #000;
