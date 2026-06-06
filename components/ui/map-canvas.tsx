@@ -73,17 +73,27 @@ function buildLayout(nodes: MapNode[]): { layoutNodes: Node[]; layoutEdges: Edge
 
   dagre.layout(g)
 
-  const layoutNodes: Node[] = nodes.map((node, i) => {
+  const centers = nodes.map((node, i) => {
     const pos = g.node(node.id)
-    let x = pos.x - NODE_WIDTH / 2
-    const y = pos.y - NODE_HEIGHT / 2
+    return {
+      cx: pos.x + (i % 2 === 1 ? ZIGZAG_OFFSET : 0),
+      cy: pos.y,
+    }
+  })
 
-    if (i % 2 === 1) x += ZIGZAG_OFFSET
+  const xs = centers.map(c => c.cx)
+  const ys = centers.map(c => c.cy)
+  const midX = (Math.min(...xs) + Math.max(...xs)) / 2
+  const midY = (Math.min(...ys) + Math.max(...ys)) / 2
 
+  const layoutNodes: Node[] = nodes.map((node, i) => {
     return {
       id: node.id,
       type: 'mission' as const,
-      position: { x, y },
+      position: {
+        x: centers[i].cx - midX - NODE_WIDTH / 2,
+        y: centers[i].cy - midY - NODE_HEIGHT / 2,
+      },
       data: {
         label: node.name,
         missionId: node.id,
