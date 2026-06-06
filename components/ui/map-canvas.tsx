@@ -9,7 +9,6 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
-  useReactFlow,
   type Node,
   type Edge,
   type NodeTypes,
@@ -124,24 +123,15 @@ const FlowCanvas: FC<Props & { onTooltip: (t: any) => void; onGuide: (id: string
   onGuide,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const { fitView } = useReactFlow()
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node>([])
   const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>([])
-  const [ready, setReady] = useState(false)
 
   const memoLayout = useMemo(() => buildLayout(nodes), [nodes])
 
   useEffect(() => {
     setFlowNodes(memoLayout.layoutNodes)
     setFlowEdges(memoLayout.layoutEdges)
-    if (memoLayout.layoutNodes.length > 0) setReady(true)
   }, [memoLayout, setFlowNodes, setFlowEdges])
-
-  useEffect(() => {
-    if (!ready || flowNodes.length === 0) return
-    const timer = setTimeout(() => fitView({ padding: 0.25, duration: 300 }), 50)
-    return () => clearTimeout(timer)
-  }, [ready, flowNodes.length, fitView])
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -231,7 +221,7 @@ export default function MapCanvas({ nodes, playerLevel, onSelect }: Props) {
   if (nodes.length === 0) return null
 
   return (
-    <div className="relative w-full" style={{ height: 'clamp(500px, 70vh, 750px)' }}>
+    <div className="relative w-full" style={{ height: 'calc(100vh - 120px)' }}>
       <ReactFlowProvider>
         <FlowCanvas nodes={nodes} playerLevel={playerLevel} onSelect={onSelect} onTooltip={setTooltip} onGuide={handleGuide} />
       </ReactFlowProvider>
