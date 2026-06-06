@@ -9,6 +9,7 @@ import {
   ReactFlowProvider,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeTypes,
@@ -133,6 +134,8 @@ const FlowCanvas: FC<Props & { onTooltip: (t: any) => void; onGuide: (id: string
   onGuide,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const { fitView } = useReactFlow()
+  const fitted = useRef(false)
   const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node>([])
   const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>([])
 
@@ -142,6 +145,13 @@ const FlowCanvas: FC<Props & { onTooltip: (t: any) => void; onGuide: (id: string
     setFlowNodes(memoLayout.layoutNodes)
     setFlowEdges(memoLayout.layoutEdges)
   }, [memoLayout, setFlowNodes, setFlowEdges])
+
+  useEffect(() => {
+    if (flowNodes.length > 0 && !fitted.current) {
+      fitted.current = true
+      requestAnimationFrame(() => fitView({ padding: 0.25 }))
+    }
+  }, [flowNodes.length, fitView])
 
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
