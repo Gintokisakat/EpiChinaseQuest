@@ -92,7 +92,7 @@ export default function MapPage() {
 
       {/* Mission list */}
       {missions.length === 0 ? (
-        <EmptyState icon="🗺️" title="No hay misiones disponibles" description="Las misiones se cargarán cuando haya contenido disponible." />
+        <EmptyState lili="blanket" title="No hay misiones disponibles" description="Las misiones se cargarán cuando haya contenido disponible." />
       ) : (
       <div className="space-y-3">
         {missions.map(m => {

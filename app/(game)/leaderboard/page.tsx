@@ -95,7 +95,7 @@ export default function LeaderboardPage() {
 
       {/* Rankings */}
       {entries.length === 0 ? (
-        <EmptyState icon="🏆" title="Sin rankings aún" description="Sé el primero en aparecer aquí estudiando y ganando XP." />
+        <EmptyState lili="sad" title="Sin rankings aún" description="Sé el primero en aparecer aquí estudiando y ganando XP." />
       ) : (
       <div className="space-y-2">
         {entries.map((entry, i) => (

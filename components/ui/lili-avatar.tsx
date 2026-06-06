@@ -19,6 +19,9 @@ type LiliExpression =
   | 'sweats'
   | 'smirk'
   | 'headphones'
+  | 'hearteyes'
+  | 'blanketsleep'
+  | 'blanketgrumpy'
 
 interface Props {
   expression?: LiliExpression
@@ -47,6 +50,9 @@ const files: Record<LiliExpression, string> = {
   sweats: '/dragns/dragnsweats.svg',
   smirk: '/dragns/dragnsmirk.svg',
   headphones: '/dragns/dragnheadphones.svg',
+  hearteyes: '/dragns/dragnhearteyes.svg',
+  blanketsleep: '/dragns/dragnblanketsleep.svg',
+  blanketgrumpy: '/dragns/dragnblanketgrumpy.svg',
 }
 
 export default function LiliAvatar({ expression = 'uwu', size = 48, className = '' }: Props) {

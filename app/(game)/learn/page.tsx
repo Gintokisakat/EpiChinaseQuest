@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AudioButton from '@/components/ui/audio-button'
+import LiliAvatar from '@/components/ui/lili-avatar'
 import type { Card } from '@/types'
 
 type Phase = 'select' | 'study' | 'quiz' | 'done'
@@ -203,7 +204,10 @@ export default function LearnPage() {
       <div className="max-w-lg mx-auto">
         {/* Progress */}
         <div className="flex items-center justify-between mb-4 text-sm">
-          <span className="text-[#a78bfa]">Unidad {selectedUnit}</span>
+          <div className="flex items-center gap-2">
+            <LiliAvatar expression="think" size={28} />
+            <span className="text-[#a78bfa]">Unidad {selectedUnit}</span>
+          </div>
           <span className="text-[#6b7280]">{currentIndex + 1} / {cards.length}</span>
         </div>
         <div className="w-full h-1 bg-[#2d2d44] rounded-full mb-6">
@@ -276,6 +280,13 @@ export default function LearnPage() {
           {currentIndex + 1} / {cards.length}
         </div>
 
+        <div className="flex justify-center mb-4">
+          <LiliAvatar
+            expression={selected ? (isCorrect ? 'happy' : 'crysmile') : 'uwu'}
+            size={56}
+          />
+        </div>
+
         <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 text-center mb-4">
           <div className="text-5xl font-bold text-[#f0e6d0] tracking-wider mb-2">{card.hanzi}</div>
           <div className="text-xs text-[#6b7280]">L{card.level} · {card.pos || '—'}</div>
@@ -315,7 +326,9 @@ export default function LearnPage() {
   const percent = cards.length > 0 ? Math.round((score / cards.length) * 100) : 0
   return (
     <div className="max-w-lg mx-auto text-center py-10">
-      <div className="text-6xl mb-4">🎉</div>
+      <div className="flex justify-center mb-4">
+        <LiliAvatar expression={percent >= 80 ? 'heart' : 'happy'} size={80} />
+      </div>
       <h2 className="text-2xl font-bold text-[#f59e0b] mb-2">¡Unidad completada!</h2>
       <p className="text-[#6b7280] mb-2">{cards.length} palabras estudiadas</p>
       <p className="text-lg font-bold text-[#f0e6d0] mb-6">

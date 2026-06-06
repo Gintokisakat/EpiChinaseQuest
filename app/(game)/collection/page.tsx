@@ -147,7 +147,7 @@ export default function CollectionPage() {
 
       {tab === 'characters' && (
         characters.length === 0 ? (
-          <EmptyState icon="👤" title="Sin personajes" description="Los personajes se obtienen al subir de nivel y completar misiones." />
+          <EmptyState lili="crysmile" title="Sin personajes" description="Los personajes se obtienen al subir de nivel y completar misiones." />
         ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {characters.map(char => (

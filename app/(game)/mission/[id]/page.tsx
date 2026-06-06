@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { calculateDamage } from '@/lib/game/damage'
 import { getRandomPowerUps } from '@/lib/game/powerups'
+import LiliAvatar from '@/components/ui/lili-avatar'
 import type { Mission, Card, PowerUp } from '@/types'
 import { useParams } from 'next/navigation'
 
@@ -199,7 +200,9 @@ export default function MissionPage() {
   if (status === 'victory') {
     return (
       <div className="text-center py-20 max-w-sm mx-auto">
-        <div className="text-6xl mb-4">🏆</div>
+        <div className="flex justify-center mb-4">
+          <LiliAvatar expression="heart" size={80} />
+        </div>
         <h2 className="text-2xl font-bold text-[#f59e0b] mb-2">¡VICTORIA!</h2>
         <p className="text-[#6b7280] mb-2">{mission?.display_name} derrotado</p>
         <p className="text-xl font-bold text-[#f0e6d0] mb-6">{score} pts</p>
@@ -211,7 +214,9 @@ export default function MissionPage() {
   if (status === 'defeat') {
     return (
       <div className="text-center py-20 max-w-sm mx-auto">
-        <div className="text-6xl mb-4">💀</div>
+        <div className="flex justify-center mb-4">
+          <LiliAvatar expression="crysmile" size={80} />
+        </div>
         <h2 className="text-2xl font-bold text-[#ef4444] mb-2">Derrota</h2>
         <p className="text-[#6b7280] mb-2">Has caído en {mission?.display_name}</p>
         <p className="text-xl font-bold text-[#f0e6d0] mb-6">{score} pts</p>
@@ -224,7 +229,9 @@ export default function MissionPage() {
   if (status === 'powerup' && powerUps.length > 0) {
     return (
       <div className="text-center py-10 max-w-lg mx-auto">
-        <div className="text-5xl mb-4">⚡</div>
+        <div className="flex justify-center mb-3">
+          <LiliAvatar expression="hearteyes" size={64} />
+        </div>
         <h2 className="text-xl font-bold text-[#f0e6d0] mb-6">¡Elige tu poder!</h2>
         <div className="grid grid-cols-1 gap-3">
           {powerUps.map(pu => (
@@ -274,7 +281,9 @@ export default function MissionPage() {
       {/* Ready screen */}
       {status === 'ready' && (
         <div className="text-center py-20">
-          <div className="text-6xl mb-4">⚔️</div>
+          <div className="flex justify-center mb-4">
+            <LiliAvatar expression="cool" size={80} />
+          </div>
           <h2 className="text-xl font-bold text-[#f0e6d0] mb-2">¿Listo?</h2>
           <p className="text-sm text-[#6b7280] mb-6">Responde correctamente para derrotar al jefe</p>
           <button onClick={startGame} className="bg-[#f59e0b] text-black font-bold px-8 py-3 rounded-xl text-lg">
@@ -286,6 +295,12 @@ export default function MissionPage() {
       {/* Game */}
       {status === 'playing' && currentCard && (
         <>
+          <div className="flex justify-center mb-3">
+            <LiliAvatar
+              expression={result === 'correct' ? 'happy' : result === 'wrong' ? 'angry' : streak >= 5 ? 'cool' : lives === 1 ? 'pleading' : 'uwu'}
+              size={48}
+            />
+          </div>
           <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 text-center mb-4">
             <div className="text-5xl mb-2 font-bold text-[#f0e6d0] tracking-wider">{currentCard.hanzi}</div>
             <div className="text-xs text-[#6b7280]">L{currentCard.level} · {currentCard.pos || '—'}</div>

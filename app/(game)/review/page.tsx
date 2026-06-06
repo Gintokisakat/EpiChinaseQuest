@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { processSrsAnswer, type SrsBox } from '@/lib/game/srs'
 import AudioButton from '@/components/ui/audio-button'
 import { useToast } from '@/components/ui/toast'
+import LiliAvatar from '@/components/ui/lili-avatar'
 import type { Card, UserCard } from '@/types'
 
 type QuizMode = 'pinyin' | 'meaning' | 'hanzi'
@@ -281,6 +282,12 @@ export default function ReviewPage() {
         <div className="text-center py-20 text-[#6b7280] animate-pulse">Cargando...</div>
       ) : currentCard ? (
         <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 text-center">
+          <div className="flex justify-center mb-3">
+            <LiliAvatar
+              expression={selected ? (isCorrect ? 'happy' : 'crysmile') : 'think'}
+              size={48}
+            />
+          </div>
           <div className="flex items-center justify-center gap-3 mb-4">
             <AudioButton audioUrl={currentCard.audio_path} hanzi={currentCard.hanzi} pinyin={currentCard.pinyin} />
           </div>
