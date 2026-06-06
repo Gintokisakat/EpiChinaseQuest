@@ -4,11 +4,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { processSrsAnswer, processRevenge, type SrsBox } from '@/lib/game/srs'
 import AudioButton from '@/components/ui/audio-button'
+import AudioInput from '@/components/ui/audio-input'
 import { useToast } from '@/components/ui/toast'
 import LiliAvatar from '@/components/ui/lili-avatar'
 import type { Card, UserCard } from '@/types'
 
-type QuizMode = 'pinyin' | 'meaning' | 'hanzi'
+type QuizMode = 'pinyin' | 'meaning' | 'hanzi' | 'speech'
 type QueueType = 'revise1' | 'revise2' | 'known' | 'unit'
 
 export default function ReviewPage() {
@@ -23,6 +24,7 @@ export default function ReviewPage() {
   const [xpGained, setXpGained] = useState(0)
   const [units, setUnits] = useState<{ level: number; unit: number; count: number }[]>([])
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
+  const [speechResult, setSpeechResult] = useState<string | null>(null)
   const { toast } = useToast()
   const supabase = createClient()
 
@@ -56,6 +58,7 @@ export default function ReviewPage() {
     setCurrentIndex(0)
     setSelected(null)
     setIsCorrect(null)
+    setSpeechResult(null)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -114,6 +117,8 @@ export default function ReviewPage() {
   }
 
   const generateOptions = (card: Card) => {
+    if (mode === 'speech') return
+
     const correct = mode === 'pinyin' ? card.pinyin
       : mode === 'meaning' ? card.english
       : card.hanzi
@@ -133,7 +138,7 @@ export default function ReviewPage() {
   }
 
   const handleAnswer = async (answer: string) => {
-    if (selected) return
+    if (selected || mode === 'speech') return
     setSelected(answer)
 
     const card = cards[currentIndex]
@@ -210,6 +215,7 @@ export default function ReviewPage() {
         setCurrentIndex(next)
         setSelected(null)
         setIsCorrect(null)
+        setSpeechResult(null)
         generateOptions(cards[next])
       } else {
         setCards([])
@@ -217,6 +223,69 @@ export default function ReviewPage() {
       }
     }, 1200)
   }
+
+  const handleSpeechResult = useCallback(async (result: 'correct' | 'partial' | 'wrong', transcript: string) => {
+    const card = cards[currentIndex]
+    if (!card || selected) return
+
+    const correct = result === 'correct' || result === 'partial'
+
+    setSelected(transcript)
+    setIsCorrect(correct)
+    setSpeechResult(result)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    if (queueType !== 'unit' && card.userCard) {
+      const currentBox: SrsBox = card.userCard.known ? 'known'
+        : card.userCard.revise1 ? 'revise1'
+        : 'revise2'
+      const srs = processSrsAnswer(currentBox, correct)
+      const revenge = processRevenge(
+        correct,
+        card.userCard.challenge_streak,
+        card.userCard.challenge_best,
+        card.userCard.revenge_marked,
+      )
+
+      const newLevel = card.userCard.card_level + (correct ? 1 : 0)
+      await supabase.from('user_cards').upsert({
+        id: card.userCard.id,
+        user_id: user.id,
+        card_id: card.id,
+        known: srs.newBox === 'known',
+        revise1: srs.newBox === 'revise1' || (srs.newBox === 'revise2' && currentBox === 'known'),
+        revise2: srs.newBox === 'revise2',
+        card_level: newLevel,
+        challenge_streak: revenge.newStreak,
+        challenge_best: revenge.newBest,
+        revenge_marked: revenge.revengeMarked,
+        dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
+        modified: true,
+        updated_at: new Date().toISOString(),
+      })
+
+      if (correct) {
+        const { error } = await supabase.rpc('add_xp', { user_id: user.id, xp_amount: srs.xpGained })
+        if (!error) setXpGained(prev => prev + srs.xpGained)
+      }
+    }
+
+    setTimeout(() => {
+      const next = currentIndex + 1
+      if (next < cards.length) {
+        setCurrentIndex(next)
+        setSelected(null)
+        setIsCorrect(null)
+        setSpeechResult(null)
+        generateOptions(cards[next])
+      } else {
+        setCards([])
+        setCurrentIndex(0)
+      }
+    }, 1500)
+  }, [cards, currentIndex, mode, queueType, supabase])
 
   const currentCard = cards[currentIndex]
   const remaining = cards.length - currentIndex
@@ -252,14 +321,14 @@ export default function ReviewPage() {
       </div>
 
       {/* Mode selector */}
-      <div className="flex gap-2 mb-6 justify-center">
-        {(['pinyin', 'meaning', 'hanzi'] as QuizMode[]).map(m => (
+      <div className="flex gap-2 mb-6 justify-center flex-wrap">
+        {(['pinyin', 'meaning', 'hanzi', 'speech'] as QuizMode[]).map(m => (
           <button
             key={m}
             onClick={() => { setMode(m); if (currentCard) generateOptions(currentCard) }}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${mode === m ? 'bg-[#7c3aed] text-white' : 'bg-[#1a1a2e] text-[#f0e6d0] border border-[#2d2d44]'}`}
           >
-            {m === 'pinyin' ? 'Pinyin' : m === 'meaning' ? 'Significado' : 'Hanzi'}
+            {m === 'pinyin' ? 'Pinyin' : m === 'meaning' ? 'Significado' : m === 'hanzi' ? 'Hanzi' : '🎤 Voz'}
           </button>
         ))}
       </div>
@@ -306,20 +375,41 @@ export default function ReviewPage() {
             <AudioButton audioUrl={currentCard.audio_path} hanzi={currentCard.hanzi} pinyin={currentCard.pinyin} />
           </div>
           <div className="text-5xl mb-4 font-bold text-[#f0e6d0] tracking-wider">
-            {mode === 'hanzi' ? `${currentCard.pinyin} (${currentCard.english.split(';')[0]})` : currentCard.hanzi}
+            {mode === 'speech' || mode === 'hanzi' ? currentCard.hanzi : `${currentCard.pinyin}`}
           </div>
-          <div className="text-xs text-[#6b7280] mb-6">
-            L{currentCard.level} · {currentCard.pos || '—'}
-          </div>
+          {mode !== 'speech' && (
+            <div className="text-xs text-[#6b7280] mb-6">
+              L{currentCard.level} · {currentCard.pos || '—'}
+            </div>
+          )}
 
           {/* Feedback */}
-          {selected && (
+          {selected && mode !== 'speech' && (
             <div className={`text-lg font-bold mb-4 ${isCorrect ? 'text-[#34d399]' : 'text-[#ef4444]'}`}>
               {isCorrect ? '✓ ¡Correcto!' : '✗ Incorrecto'}
               {isCorrect && ' +XP'}
             </div>
           )}
+          {speechResult && (
+            <div className={`text-lg font-bold mb-4 ${
+              speechResult === 'correct' ? 'text-[#34d399]'
+                : speechResult === 'partial' ? 'text-[#f59e0b]'
+                : 'text-[#ef4444]'
+            }`}>
+              {speechResult === 'correct' ? '🟢 ¡Correcto!'
+                : speechResult === 'partial' ? '🟡 Casi'
+                : '🔴 Incorrecto'}
+              {(speechResult === 'correct' || speechResult === 'partial') && ' +XP'}
+            </div>
+          )}
 
+          {mode === 'speech' ? (
+            <AudioInput
+              expectedAnswer={currentCard.pinyin}
+              onResult={handleSpeechResult}
+              disabled={selected !== null}
+            />
+          ) : (
           <div className="grid grid-cols-2 gap-3">
             {options.map((opt) => (
               <button
@@ -340,6 +430,7 @@ export default function ReviewPage() {
               </button>
             ))}
           </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-20">
