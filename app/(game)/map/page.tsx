@@ -1,24 +1,19 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import MapCanvas from '@/components/ui/map-canvas'
 import EmptyState from '@/components/ui/empty-state'
+import LiliAvatar from '@/components/ui/lili-avatar'
 import type { Mission, UserMission } from '@/types'
-
-const LEVEL_INFO = [
-  { level: 1, name: 'Nivel 1', cards: 300, emoji: '🌱', unlocked: true },
-  { level: 2, name: 'Nivel 2', cards: 200, emoji: '🌿' },
-  { level: 3, name: 'Nivel 3', cards: 500, emoji: '🌳' },
-  { level: 4, name: 'Nivel 4', cards: 1000, emoji: '🏔️' },
-  { level: 5, name: 'Nivel 5', cards: 1600, emoji: '⛰️' },
-  { level: 6, name: 'Nivel 6', cards: 1800, emoji: '🏯' },
-  { level: 7, name: 'Nivel 7', cards: 5600, emoji: '🐉' },
-]
+import type { MapNode } from '@/components/ui/map-canvas'
 
 export default function MapPage() {
-  const [missions, setMissions] = useState<(Mission & { userMission?: UserMission })[]>([])
+  const [nodes, setNodes] = useState<MapNode[]>([])
   const [playerLevel, setPlayerLevel] = useState(1)
   const [loading, setLoading] = useState(true)
+  const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
@@ -40,28 +35,38 @@ export default function MapPage() {
         (um || []).filter(u => u.status === 'completed').map(u => u.mission_id)
       )
 
-      const mapped = m.map((mission, i) => {
+      const mapped: MapNode[] = m.map((mission, i) => {
         const prevCompleted = i === 0 || completedIds.has(m[i - 1].id)
         const levelUnlocked = profile ? profile.level >= mission.level_required : false
         const isUnlocked = prevCompleted && levelUnlocked
 
-        const userMission = um?.find(u => u.mission_id === mission.id) as UserMission | undefined
+        const userMission = um?.find(u => u.mission_id === mission.id)
+
+        let status: MapNode['status'] = 'locked'
+        if (userMission?.status === 'completed') status = 'completed'
+        else if (isUnlocked) status = 'unlocked'
 
         return {
-          ...mission,
-          userMission: userMission || {
-            id: '',
-            user_id: user.id,
-            mission_id: mission.id,
-            status: isUnlocked ? 'unlocked' as const : 'locked' as const,
-            high_score: 0,
-            completed_at: null,
-          } as UserMission,
+          id: mission.id,
+          bossId: mission.boss_id,
+          name: mission.display_name,
+          hp: mission.hp,
+          timerSecs: mission.timer_secs,
+          lives: mission.lives,
+          status,
+          highScore: userMission?.high_score || 0,
+          x: 0,
+          y: 0,
         }
-      }) as (Mission & { userMission?: UserMission })[]
-      setMissions(mapped)
+      })
+
+      setNodes(mapped)
     }
     setLoading(false)
+  }
+
+  const handleSelect = (bossId: string) => {
+    router.push(`/mission/${bossId}`)
   }
 
   if (loading) {
@@ -73,66 +78,25 @@ export default function MapPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8">
-        <h1 className="text-2xl font-bold text-[#f59e0b]">🗺️ Mapa Mundial</h1>
-        <p className="text-sm text-[#6b7280]">Progresa a través de los niveles y derrota a los jefes</p>
+    <div className="max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-[#f59e0b]">🗺️ Mapa Mundial</h1>
+          <p className="text-sm text-[#6b7280]">Nv.{playerLevel} — Derrota a los jefes para progresar</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <LiliAvatar expression="cool" size={36} />
+        </div>
       </div>
 
-      {/* Level progress */}
-      <div className="grid grid-cols-7 gap-2 mb-8">
-        {LEVEL_INFO.map(l => (
-          <div key={l.level} className="text-center">
-            <div className="text-2xl mb-1">{l.emoji}</div>
-            <div className="text-xs text-[#6b7280]">{l.name}</div>
-            <div className="text-xs text-[#4b5563]">{l.cards}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Mission list */}
-      {missions.length === 0 ? (
-        <EmptyState lili="blanket" title="No hay misiones disponibles" description="Las misiones se cargarán cuando haya contenido disponible." />
+      {nodes.length === 0 ? (
+        <EmptyState lili="blanket" title="No hay misiones disponibles" />
       ) : (
-      <div className="space-y-3">
-        {missions.map(m => {
-          const status = m.userMission?.status || 'locked'
-          const isCompleted = status === 'completed'
-
-          return (
-            <a
-              key={m.id}
-              href={status !== 'locked' ? `/mission/${m.boss_id}` : undefined}
-              className={`block bg-[#1a1a2e] border rounded-xl p-4 transition-colors ${
-                isCompleted
-                  ? 'border-[#34d399] opacity-80'
-                  : status === 'locked'
-                  ? 'border-[#2d2d44] opacity-50 cursor-not-allowed'
-                  : 'border-[#2d2d44] hover:border-[#f59e0b]'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">
-                    {isCompleted ? '✅' : status === 'locked' ? '🔒' : '⚔️'}
-                  </span>
-                  <div>
-                    <div className="font-bold text-[#f0e6d0]">{m.display_name}</div>
-                    <div className="text-xs text-[#6b7280]">
-                      {m.hp.toLocaleString()} HP · {Math.floor(m.timer_secs / 60)} min
-                      {isCompleted && m.userMission?.high_score ? ` · Best: ${m.userMission.high_score} pts` : ''}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs text-[#6b7280]">{m.lives} ❤️</div>
-                  {isCompleted && <div className="text-xs text-[#34d399]">Completado</div>}
-                </div>
-              </div>
-            </a>
-          )
-        })}
-      </div>
+        <MapCanvas
+          nodes={nodes}
+          playerLevel={playerLevel}
+          onSelect={handleSelect}
+        />
       )}
     </div>
   )
