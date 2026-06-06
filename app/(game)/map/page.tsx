@@ -55,6 +55,11 @@ export default function MapPage() {
           lives: mission.lives,
           status,
           highScore: userMission?.high_score || 0,
+          progress: userMission?.high_score
+            ? Math.min(100, Math.round((userMission.high_score / mission.hp) * 100))
+            : status === 'completed' ? 100
+            : status === 'unlocked' ? 0
+            : 0,
           x: 0,
           y: 0,
         }

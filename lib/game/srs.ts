@@ -33,9 +33,25 @@ export function processSrsAnswer(
   return { correct: false, newBox: 'revise2', xpGained: 0 }
 }
 
-export function shouldMarkRevenge(
-  totalAttempts: number,
-  correctStreak: number
-): boolean {
+export interface RevengeResult {
+  newStreak: number
+  newBest: number
+  revengeMarked: boolean
+}
+
+export function shouldMarkRevenge(correctStreak: number): boolean {
   return correctStreak < 5
+}
+
+export function processRevenge(
+  correct: boolean,
+  currentStreak: number,
+  bestStreak: number,
+  currentlyMarked: boolean,
+): RevengeResult {
+  const newStreak = correct ? currentStreak + 1 : 0
+  const newBest = Math.max(bestStreak, newStreak)
+  const revengeMarked = shouldMarkRevenge(newStreak)
+
+  return { newStreak, newBest, revengeMarked }
 }

@@ -30,6 +30,7 @@ export interface MapNode {
   lives: number
   status: 'locked' | 'unlocked' | 'completed'
   highScore?: number
+  progress: number
   x: number
   y: number
 }
@@ -104,6 +105,7 @@ function buildLayout(nodes: MapNode[]): { layoutNodes: Node[]; layoutEdges: Edge
         timerSecs: node.timerSecs,
         lives: node.lives,
         highScore: node.highScore || 0,
+        progress: node.progress,
         accentColor: ACCENT_COLORS[i % ACCENT_COLORS.length],
       },
     }
@@ -176,6 +178,7 @@ const FlowCanvas: FC<Props & { onTooltip: (t: any) => void; onGuide: (id: string
         lives: d.lives as number,
         status: d.status as MapNode['status'],
         highScore: d.highScore as number | undefined,
+        progress: d.progress as number,
         x: node.position.x,
         y: node.position.y,
       }

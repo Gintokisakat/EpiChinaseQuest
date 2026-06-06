@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { processSrsAnswer, type SrsBox } from '@/lib/game/srs'
+import { processSrsAnswer, processRevenge, type SrsBox } from '@/lib/game/srs'
 import AudioButton from '@/components/ui/audio-button'
 import { useToast } from '@/components/ui/toast'
 import LiliAvatar from '@/components/ui/lili-avatar'
@@ -64,6 +64,7 @@ export default function ReviewPage() {
       .from('user_cards')
       .select('*, card:card_id(*)')
       .eq('user_id', user.id)
+      .order('revenge_marked', { ascending: false })
 
     if (type === 'known') query = query.eq('known', true)
     else if (type === 'revise1') query = query.eq('revise1', true)
@@ -152,6 +153,12 @@ export default function ReviewPage() {
         : card.userCard.revise1 ? 'revise1'
         : 'revise2'
       const result = processSrsAnswer(currentBox, correct)
+      const revenge = processRevenge(
+        correct,
+        card.userCard.challenge_streak,
+        card.userCard.challenge_best,
+        card.userCard.revenge_marked,
+      )
 
       const newLevel = card.userCard.card_level + (correct ? 1 : 0)
       const { error: upsertError } = await supabase.from('user_cards').upsert({
@@ -162,6 +169,9 @@ export default function ReviewPage() {
         revise1: result.newBox === 'revise1' || (result.newBox === 'revise2' && currentBox === 'known'),
         revise2: result.newBox === 'revise2',
         card_level: newLevel,
+        challenge_streak: revenge.newStreak,
+        challenge_best: revenge.newBest,
+        revenge_marked: revenge.revengeMarked,
         dk_added_at: correct && !card.userCard.known ? new Date().toISOString() : undefined,
         modified: true,
         updated_at: new Date().toISOString(),
@@ -284,7 +294,11 @@ export default function ReviewPage() {
         <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 text-center">
           <div className="flex justify-center mb-3">
             <LiliAvatar
-              expression={selected ? (isCorrect ? 'happy' : 'crysmile') : 'think'}
+              expression={
+                currentCard.userCard?.revenge_marked && !selected ? 'uwu'
+                : selected ? (isCorrect ? 'happy' : 'crysmile')
+                : 'think'
+              }
               size={48}
             />
           </div>
