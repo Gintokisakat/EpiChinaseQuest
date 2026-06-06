@@ -164,7 +164,7 @@
 |---------|-------------|--------|
 | **v1 — Lista** | Lista vertical de misiones (actual) | ✅ |
 | **v2 — Nodos** | Canvas 2D con círculos conectados, scroll, animaciones, pulsing unlocked, tooltip hover, guidebook modal | ✅ |
-| **v3 — Regiones** | Fondos por zona, paleta por región, transiciones | 💡 |
+| **v3 — Regiones** | Terreno procedural (noise heightmap), biomas por región, edificios pixel-art, caminos orgánicos, nubes animadas, partículas flotantes | ✅ |
 | **v4 — RPG** | Scrolling horizontal estilo Mario World, secretos, cofres, fast travel | 💡 |
 
 ### Mapa v2 — UX details

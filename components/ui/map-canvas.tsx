@@ -1,6 +1,24 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo, type FC } from 'react'
+import {
+  ReactFlow,
+  Background,
+  Controls,
+  MiniMap,
+  ReactFlowProvider,
+  useNodesState,
+  useEdgesState,
+  useReactFlow,
+  type Node,
+  type Edge,
+  type NodeTypes,
+  type EdgeTypes,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import dagre from '@dagrejs/dagre'
+import MissionNode from '@/components/map/mission-node'
+import AnimatedEdge from '@/components/map/animated-edge'
 import LiliAvatar from './lili-avatar'
 
 export interface MapNode {
@@ -22,273 +40,206 @@ interface Props {
   onSelect: (bossId: string) => void
 }
 
-const PADDING = 60
-const ROW_HEIGHT = 150
+const NODE_WIDTH = 80
+const NODE_HEIGHT = 80
+const ZIGZAG_OFFSET = 100
 
-function getNodeColor(status: string): string {
-  if (status === 'completed') return '#34d399'
-  if (status === 'unlocked') return '#f59e0b'
-  return '#4b5563'
+const ACCENT_COLORS = [
+  '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#10b981',
+  '#f97316', '#ec4899', '#6366f1', '#14b8a6', '#eab308',
+]
+
+const nodeTypes: NodeTypes = {
+  mission: MissionNode,
 }
 
-function getNodeLabel(status: string): string {
-  if (status === 'completed') return '✓'
-  if (status === 'unlocked') return '⚔️'
-  return '🔒'
+const edgeTypes: EdgeTypes = {
+  animated: AnimatedEdge,
+}
+
+function buildLayout(nodes: MapNode[]): { layoutNodes: Node[]; layoutEdges: Edge[] } {
+  if (nodes.length === 0) return { layoutNodes: [], layoutEdges: [] }
+
+  const g = new dagre.graphlib.Graph()
+  g.setDefaultEdgeLabel(() => ({}))
+  g.setGraph({ rankdir: 'TB', nodesep: 40, ranksep: 100, marginx: 40, marginy: 40 })
+
+  nodes.forEach((node) => {
+    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
+  })
+
+  for (let i = 0; i < nodes.length - 1; i++) {
+    g.setEdge(nodes[i].id, nodes[i + 1].id)
+  }
+
+  dagre.layout(g)
+
+  const layoutNodes: Node[] = nodes.map((node, i) => {
+    const pos = g.node(node.id)
+    let x = pos.x - NODE_WIDTH / 2
+    const y = pos.y - NODE_HEIGHT / 2
+
+    if (i % 2 === 1) x += ZIGZAG_OFFSET
+
+    return {
+      id: node.id,
+      type: 'mission' as const,
+      position: { x, y },
+      data: {
+        label: node.name,
+        missionId: node.id,
+        bossId: node.bossId,
+        status: node.status,
+        hp: node.hp,
+        timerSecs: node.timerSecs,
+        lives: node.lives,
+        highScore: node.highScore || 0,
+        accentColor: ACCENT_COLORS[i % ACCENT_COLORS.length],
+      },
+    }
+  })
+
+  const layoutEdges: Edge[] = []
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const fromStatus = nodes[i].status
+    const toStatus = nodes[i + 1].status
+    const completed = fromStatus === 'completed' && toStatus !== 'locked'
+
+    layoutEdges.push({
+      id: `e-${nodes[i].id}-${nodes[i + 1].id}`,
+      source: nodes[i].id,
+      target: nodes[i + 1].id,
+      type: 'animated' as const,
+      data: { completed },
+      style: { opacity: completed ? 1 : 0.5 },
+    })
+  }
+
+  return { layoutNodes, layoutEdges }
+}
+
+const FlowCanvas: FC<Props & { onTooltip: (t: any) => void; onGuide: (id: string | null) => void }> = ({
+  nodes,
+  onTooltip,
+  onGuide,
+}) => {
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const { fitView } = useReactFlow()
+  const [flowNodes, setFlowNodes, onNodesChange] = useNodesState<Node>([])
+  const [flowEdges, setFlowEdges, onEdgesChange] = useEdgesState<Edge>([])
+  const [ready, setReady] = useState(false)
+
+  const memoLayout = useMemo(() => buildLayout(nodes), [nodes])
+
+  useEffect(() => {
+    setFlowNodes(memoLayout.layoutNodes)
+    setFlowEdges(memoLayout.layoutEdges)
+    if (memoLayout.layoutNodes.length > 0) setReady(true)
+  }, [memoLayout, setFlowNodes, setFlowEdges])
+
+  useEffect(() => {
+    if (!ready || flowNodes.length === 0) return
+    const timer = setTimeout(() => fitView({ padding: 0.25, duration: 300 }), 50)
+    return () => clearTimeout(timer)
+  }, [ready, flowNodes.length, fitView])
+
+  const handleNodeClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      const d = node.data as Record<string, unknown>
+      if (d?.status === 'unlocked') {
+        onGuide(d.bossId as string)
+      }
+    },
+    [onGuide],
+  )
+
+  const handleMouseEnter = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      const d = node.data as Record<string, unknown>
+      if (!d) return
+      const n: MapNode = {
+        id: d.missionId as string,
+        bossId: d.bossId as string,
+        name: d.label as string,
+        hp: d.hp as number,
+        timerSecs: d.timerSecs as number,
+        lives: d.lives as number,
+        status: d.status as MapNode['status'],
+        highScore: d.highScore as number | undefined,
+        x: node.position.x,
+        y: node.position.y,
+      }
+      onTooltip({ node: n, x: event.clientX, y: event.clientY })
+    },
+    [onTooltip],
+  )
+
+  const handleMouseLeave = useCallback(() => {
+    onTooltip(null)
+  }, [onTooltip])
+
+  return (
+    <div ref={wrapperRef} className="w-full h-full">
+      <ReactFlow
+        nodes={flowNodes}
+        edges={flowEdges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onNodeClick={handleNodeClick}
+        onNodeMouseEnter={handleMouseEnter}
+        onNodeMouseLeave={handleMouseLeave}
+        fitView={false}
+        minZoom={0.2}
+        maxZoom={2.5}
+        className="bg-[#0a0a18] rounded-2xl"
+        proOptions={{ hideAttribution: true }}
+          nodesFocusable={false}
+          edgesFocusable={false}
+          nodesDraggable={false}
+          zoomOnScroll={true}
+      >
+        <Background gap={32} color="#ffffff08" />
+        <Controls
+          className="!bg-[#1a1a2e] !border-[#2d2d44] !rounded-xl !shadow-xl"
+          showInteractive={false}
+        />
+        <MiniMap
+          nodeColor={(node: Node) => {
+            const d = node.data as Record<string, unknown>
+            if (d?.status === 'completed') return '#34d399'
+            if (d?.status === 'unlocked') return '#f59e0b'
+            return '#4b5563'
+          }}
+          maskColor="rgba(10,10,24,0.8)"
+          className="!bg-[#1a1a2e] !border-[#2d2d44] !rounded-xl !shadow-xl"
+          pannable
+          zoomable
+        />
+      </ReactFlow>
+    </div>
+  )
 }
 
 export default function MapCanvas({ nodes, playerLevel, onSelect }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; node: MapNode } | null>(null)
-  const [showGuide, setShowGuide] = useState<string | null>(null)
-  const animRef = useRef<number>(0)
-  const pulseRef = useRef(0)
+  const [tooltip, setTooltip] = useState<{ node: MapNode; x: number; y: number } | null>(null)
+  const [guideId, setGuideId] = useState<string | null>(null)
 
-  const isDesktop = dimensions.width >= 768
+  const handleGuide = useCallback((id: string | null) => setGuideId(id), [])
 
-  const updateSize = useCallback(() => {
-    if (containerRef.current) {
-      const w = containerRef.current.clientWidth
-      const desktop = w >= 768
-      const cols = desktop ? 3 : 2
-      const rows = Math.ceil(nodes.length / cols)
-      const h = Math.max(rows * ROW_HEIGHT + PADDING * 2, 500)
-      setDimensions({ width: w, height: h })
-    }
-  }, [nodes.length])
-
-  useEffect(() => {
-    updateSize()
-    window.addEventListener('resize', updateSize)
-    return () => window.removeEventListener('resize', updateSize)
-  }, [updateSize])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas || dimensions.width === 0) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const cols = isDesktop ? 3 : 2
-    const usableW = dimensions.width - PADDING * 2
-    const colSpacing = usableW / (cols - 1 || 1)
-    const startY = PADDING
-
-    const positioned = nodes.map((node, i) => {
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const x = PADDING + col * colSpacing
-      const y = startY + row * ROW_HEIGHT
-      return { ...node, x, y }
-    })
-
-    const animate = () => {
-      pulseRef.current = (pulseRef.current + 0.025) % (Math.PI * 2)
-      draw(ctx, positioned)
-      animRef.current = requestAnimationFrame(animate)
-    }
-
-    animate()
-    return () => cancelAnimationFrame(animRef.current)
-  }, [dimensions, nodes, isDesktop])
-
-  const draw = (ctx: CanvasRenderingContext2D, positioned: MapNode[]) => {
-    const { width, height } = dimensions
-    ctx.clearRect(0, 0, width, height)
-
-    // Background
-    const grad = ctx.createLinearGradient(0, 0, 0, height)
-    grad.addColorStop(0, '#0f0f1a')
-    grad.addColorStop(0.3, '#1a1a2e')
-    grad.addColorStop(0.6, '#16213e')
-    grad.addColorStop(1, '#0f0f1a')
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, width, height)
-
-    // Stars
-    ctx.fillStyle = '#ffffff22'
-    const seed = 42
-    for (let i = 0; i < 80; i++) {
-      const sx = ((seed * (i + 1) * 137) % width)
-      const sy = ((seed * (i + 1) * 251) % height)
-      const sr = ((seed * (i + 1) * 7) % 3) + 0.5
-      ctx.beginPath()
-      ctx.arc(sx, sy, sr, 0, Math.PI * 2)
-      ctx.fill()
-    }
-
-    // Level label
-    ctx.font = '13px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillStyle = '#4b556344'
-    ctx.fillText(`Jugador Nv.${playerLevel}`, width / 2, height - 14)
-
-    // Connections between consecutive nodes
-    ctx.lineWidth = 2.5
-    for (let i = 0; i < positioned.length - 1; i++) {
-      const from = positioned[i]
-      const to = positioned[i + 1]
-      const completed = from.status === 'completed' && to.status !== 'locked'
-      ctx.strokeStyle = completed ? '#34d39944' : '#ffffff11'
-      ctx.setLineDash(completed ? [] : [6, 6])
-      ctx.beginPath()
-      ctx.moveTo(from.x, from.y)
-      const cpX = (from.x + to.x) / 2
-      const cpY = (from.y + to.y) / 2
-      ctx.quadraticCurveTo(cpX, from.y + (to.y - from.y) * 0.3, to.x, to.y)
-      ctx.stroke()
-      ctx.setLineDash([])
-    }
-
-    // Glow line for completed path
-    ctx.lineWidth = 4
-    for (let i = 0; i < positioned.length - 1; i++) {
-      const from = positioned[i]
-      const to = positioned[i + 1]
-      if (from.status !== 'completed') break
-      ctx.strokeStyle = '#34d39922'
-      ctx.beginPath()
-      ctx.moveTo(from.x, from.y)
-      const cpX = (from.x + to.x) / 2
-      const cpY = (from.y + to.y) / 2
-      ctx.quadraticCurveTo(cpX, from.y + (to.y - from.y) * 0.3, to.x, to.y)
-      ctx.stroke()
-    }
-
-    // Draw nodes
-    const pulse = pulseRef.current
-    const radius = isDesktop ? 38 : 30
-
-    for (const node of positioned) {
-      const isHovered = hoveredId === node.id
-
-      // Glow for unlocked
-      if (node.status === 'unlocked') {
-        const glowR = radius + 14 + Math.sin(pulse) * 5
-        ctx.beginPath()
-        ctx.arc(node.x, node.y, glowR, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(245, 158, 11, ${0.12 + Math.sin(pulse) * 0.06})`
-        ctx.fill()
-      }
-
-      // Completed ring
-      if (node.status === 'completed') {
-        ctx.beginPath()
-        ctx.arc(node.x, node.y, radius + 4, 0, Math.PI * 2)
-        ctx.strokeStyle = '#34d39944'
-        ctx.lineWidth = 2
-        ctx.stroke()
-      }
-
-      // Node circle
-      const r = radius + (node.status === 'unlocked' ? Math.sin(pulse) * 3 : 0)
-      ctx.beginPath()
-      ctx.arc(node.x, node.y, r, 0, Math.PI * 2)
-      ctx.fillStyle = getNodeColor(node.status)
-      ctx.fill()
-
-      // Border
-      if (isHovered) {
-        ctx.strokeStyle = '#ffffff88'
-        ctx.lineWidth = 2.5
-        ctx.stroke()
-      } else if (node.status === 'unlocked') {
-        ctx.strokeStyle = '#fbbf2444'
-        ctx.lineWidth = 1.5
-        ctx.stroke()
-      }
-
-      // Label
-      ctx.font = `${node.status === 'completed' ? 20 : node.status === 'unlocked' ? 16 : 14}px sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillStyle = node.status === 'locked' ? '#9ca3af' : '#0f0f1a'
-      ctx.fillText(getNodeLabel(node.status), node.x, node.y)
-
-      // Name below
-      ctx.font = isDesktop ? '13px sans-serif' : '11px sans-serif'
-      ctx.fillStyle = node.status === 'locked' ? '#4b5563' : '#f0e6d0'
-      ctx.textBaseline = 'top'
-      const lY = node.y + r + 6
-      const maxW = 120
-      const text = node.name.length > 16 ? node.name.slice(0, 15) + '…' : node.name
-      ctx.fillText(text, node.x, lY, maxW)
-    }
-  }
-
-  const getNodeAt = (mx: number, my: number) => {
-    const cols = isDesktop ? 3 : 2
-    const usableW = dimensions.width - PADDING * 2
-    const colSpacing = usableW / (cols - 1 || 1)
-    const startY = PADDING
-    const radius = isDesktop ? 38 : 30
-
-    for (let i = 0; i < nodes.length; i++) {
-      const col = i % cols
-      const row = Math.floor(i / cols)
-      const nx = PADDING + col * colSpacing
-      const ny = startY + row * ROW_HEIGHT
-      const dx = mx - nx
-      const dy = my - ny
-      if (dx * dx + dy * dy < (radius + 8) ** 2) {
-        return { node: { ...nodes[i], x: nx, y: ny }, nx, ny }
-      }
-    }
-    return null
-  }
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-
-    const hit = getNodeAt(mx, my)
-    setHoveredId(hit?.node.id || null)
-    setTooltip(hit ? { x: hit.nx, y: hit.ny - 10, node: hit.node } : null)
-  }
-
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const mx = e.clientX - rect.left
-    const my = e.clientY - rect.top
-
-    const hit = getNodeAt(mx, my)
-    if (hit && hit.node.status === 'unlocked') {
-      setShowGuide(hit.node.bossId)
-    }
-  }
+  if (nodes.length === 0) return null
 
   return (
-    <div ref={containerRef} className="relative" style={{ minHeight: 500 }}>
-      <canvas
-        ref={canvasRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        className="w-full rounded-2xl cursor-pointer"
-        onMouseMove={handleMouseMove}
-        onClick={handleClick}
-        onMouseLeave={() => { setHoveredId(null); setTooltip(null) }}
-      />
+    <div className="relative w-full" style={{ height: 'clamp(500px, 70vh, 750px)' }}>
+      <ReactFlowProvider>
+        <FlowCanvas nodes={nodes} playerLevel={playerLevel} onSelect={onSelect} onTooltip={setTooltip} onGuide={handleGuide} />
+      </ReactFlowProvider>
 
-      {/* Tooltip */}
       {tooltip && (
         <div
           className="absolute pointer-events-none bg-[#0f0f1a]/95 border border-[#2d2d44] rounded-xl px-4 py-3 text-sm z-10 shadow-xl"
-          style={{
-            left: tooltip.x,
-            top: tooltip.y,
-            transform: 'translate(-50%, -100%)',
-          }}
+          style={{ left: tooltip.x, top: tooltip.y - 16, transform: 'translate(-50%, -100%)' }}
         >
           <div className="font-bold text-[#f59e0b] text-base mb-1">{tooltip.node.name}</div>
           {tooltip.node.status === 'locked' ? (
@@ -308,9 +259,8 @@ export default function MapCanvas({ nodes, playerLevel, onSelect }: Props) {
         </div>
       )}
 
-      {/* Guidebook modal */}
-      {showGuide && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowGuide(null)}>
+      {guideId && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setGuideId(null)}>
           <div className="bg-[#1a1a2e] border border-[#2d2d44] rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
             <div className="flex justify-center mb-4">
               <LiliAvatar expression="cool" size={80} />
@@ -322,13 +272,13 @@ export default function MapCanvas({ nodes, playerLevel, onSelect }: Props) {
             </p>
             <div className="flex gap-3 justify-center">
               <button
-                onClick={() => { setShowGuide(null); onSelect(showGuide) }}
+                onClick={() => { setGuideId(null); onSelect(guideId) }}
                 className="bg-[#f59e0b] text-black font-bold px-8 py-3 rounded-xl hover:bg-[#d97706] transition-colors text-lg"
               >
                 ¡Comenzar!
               </button>
               <button
-                onClick={() => setShowGuide(null)}
+                onClick={() => setGuideId(null)}
                 className="bg-[#2d2d44] text-[#f0e6d0] px-6 py-3 rounded-xl hover:bg-[#3d3d54] transition-colors"
               >
                 Volver
